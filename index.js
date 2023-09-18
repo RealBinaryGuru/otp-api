@@ -37,27 +37,28 @@ app.post('/send-otp', async (req, res) => {
     const user = await User.findOne({
         phone: phone
     })
-    const currentDate = moment()
-    const previousDate = moment(user.updatedAt, 'YYYY-MM-DDTHH:mm:ss');
-    const timeDifferenceSeconds = currentDate.diff(previousDate, 'seconds');
 
-    if (timeDifferenceSeconds < 60) {
-        res.json({'message': 'Otp not expire yet'})
+    if (!user || user.length == 0) {
+        const newUser = new User({name: name, phone: phone, otp: otp});
+        sendSMS({
+            "sender": "SMS Info",
+            "to": phone,
+            "content": `your otp verification code is ${otp}`
+        })
+        newUser.save().then(() => {
+            console.log("User has been created and send otp");
+            res.status(200).json({'message': 'Otp has been send successfully'})
+        }).catch((err) => {
+            console.log(err)
+            res.json({'message': `Error: ${err}`})
+        });
     } else {
-        if (!user || user.length == 0) {
-            const newUser = new User({name: name, phone: phone, otp: otp});
-            sendSMS({
-                "sender": "SMS Info",
-                "to": phone,
-                "content": `your otp verification code is ${otp}`
-            })
-            newUser.save().then(() => {
-                console.log("User has been created and send otp");
-                res.status(200).json({'message': 'Otp has been send successfully'})
-            }).catch((err) => {
-                console.log(err)
-                res.json({'message': `Error: ${err}`})
-            });
+        const currentDate = moment()
+        const previousDate = moment(user.updatedAt, 'YYYY-MM-DDTHH:mm:ss');
+        const timeDifferenceSeconds = currentDate.diff(previousDate, 'seconds');
+
+        if (timeDifferenceSeconds < 60) {
+            res.json({'message': 'Otp not expire yet'})
         } else {
             sendSMS({
                 "sender": "SMS Info",
